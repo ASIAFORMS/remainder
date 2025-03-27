@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NOVA Reminder</title>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background-color: whitesmoke; }
+        body {
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            background-color: whitesmoke;
+        }
         .container {
             max-width: 600px;
             margin: auto;
@@ -16,15 +17,49 @@
             border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(0,0,0, 0.1);
         }
-        label, input, button { margin: 10px 0; display: block; width: 100%; }
-        input { padding: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 8px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: blue; color: white; }
-        button { background-color: blue; color: white; padding: 10px; border: none; cursor: pointer; }
-        button:hover { background-color: darkblue; }
-        .delete-btn { background-color: red; color: white; padding: 5px; border: none; cursor: pointer; width: 80px; }
-        .delete-btn:hover { background-color: darkred; }
+        label, input, button {
+            margin: 10px 0;
+            display: block;
+            width: 100%;
+        }
+        input {
+            padding: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: blue;
+            color: whitesmoke;
+        }
+        button {
+            background-color: blue;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: darkblue;
+        }
+        .delete-btn {
+            background-color: red;
+            color: white;
+            padding: 5px;
+            border: none;
+            cursor: pointer;
+            width: 80px;
+        }
+        .delete-btn:hover {
+            background-color: darkred;
+        }
     </style>
 </head>
 <body>
@@ -43,6 +78,7 @@
         <label>Set Time (9 AM - 6:30 PM Business Hours):</label>
         <input type="time" id="time">
         <button onclick="scheduleReminder()">Remind Me</button>
+
         <table>
             <thead>
                 <tr>
@@ -59,18 +95,12 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyABZ5hkmLpxnxz0c-XhbypX9Pe9xX6AP_8",
-            authDomain: "nova-raminder.firebaseapp.com",
-            projectId: "nova-raminder",
-            storageBucket: "nova-raminder.appspot.com",
-            messagingSenderId: "888723623944",
-            appId: "1:888723623944:web:b45ec725fdfcd5923b01bd",
-            measurementId: "G-KCXRRXNC08"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        
+        document.addEventListener("DOMContentLoaded", function() {
+            loadReminders();
+        });
+
+        var timeoutIds = [];
+
         function scheduleReminder() {
             var customerName = document.getElementById("name").value;
             var contactNumber = document.getElementById("number").value;
@@ -78,58 +108,106 @@
             var purchaseDate = document.getElementById("purchaseDate").value;
             var reminderDate = document.getElementById("reminderDate").value;
             var reminderTime = document.getElementById("time").value;
-            
+
             if (!customerName || !contactNumber || !purchasingDetails || !purchaseDate || !reminderDate || !reminderTime) {
                 alert("Please fill all fields.");
                 return;
             }
-            
+
             var dateTimeString = reminderDate + " " + reminderTime;
-            db.collection("reminders").add({
-                name: customerName,
-                contact: contactNumber,
-                details: purchasingDetails,
-                purchaseDate: purchaseDate,
-                reminderDateTime: dateTimeString
-            }).then(() => {
-                alert("Reminder saved successfully!");
-                loadReminders();
-            }).catch(error => console.error("Error adding reminder: ", error));
+            var scheduledTime = new Date(dateTimeString);
+            var currentTime = new Date();
+            var timeDifference = scheduledTime - currentTime;
+
+            if (timeDifference > 0) {
+                var reminder = {
+                    name: customerName,
+                    contact: contactNumber,
+                    details: purchasingDetails,
+                    purchaseDate: purchaseDate,
+                    dateTime: dateTimeString
+                };
+
+                saveReminder(reminder);
+                addReminderToTable(reminder);
+                scheduleNotification(reminder, timeDifference);
+            } else {
+                alert("The scheduled time is in the past!");
+            }
         }
-        
+
+        // Save reminders in localStorage
+        function saveReminder(reminder) {
+            var reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+            reminders.push(reminder);
+            localStorage.setItem("reminders", JSON.stringify(reminders));
+        }
+
+        // Load and reschedule reminders
         function loadReminders() {
-            document.getElementById("reminderTable").innerHTML = "";
-            db.collection("reminders").get().then(snapshot => {
-                snapshot.forEach(doc => {
-                    addReminderToTable(doc.id, doc.data());
-                });
+            var reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+            var updatedReminders = [];
+
+            reminders.forEach(reminder => {
+                var scheduledTime = new Date(reminder.dateTime);
+                var currentTime = new Date();
+                var timeDifference = scheduledTime - currentTime;
+
+                if (timeDifference > 0) {
+                    addReminderToTable(reminder);
+                    scheduleNotification(reminder, timeDifference);
+                    updatedReminders.push(reminder);
+                }
             });
+
+            localStorage.setItem("reminders", JSON.stringify(updatedReminders));
         }
-        
-        function addReminderToTable(id, data) {
+
+        // Schedule notifications
+        function scheduleNotification(reminder, timeDifference) {
+            var timeoutId = setTimeout(function () {
+                new Notification("Reminder for " + reminder.name, {
+                    body: "Contact: " + reminder.contact + "\nPurchase: " + reminder.details,
+                    requireInteraction: true
+                });
+            }, timeDifference);
+
+            timeoutIds.push(timeoutId);
+        }
+
+        // Add reminder to the table
+        function addReminderToTable(reminder) {
             var table = document.getElementById("reminderTable");
             var row = table.insertRow();
-            row.insertCell(0).innerText = data.name;
-            row.insertCell(1).innerText = data.contact;
-            row.insertCell(2).innerText = data.details;
-            row.insertCell(3).innerText = data.purchaseDate;
-            row.insertCell(4).innerText = data.reminderDateTime;
+            row.insertCell(0).innerText = reminder.name;
+            row.insertCell(1).innerText = reminder.contact;
+            row.insertCell(2).innerText = reminder.details;
+            row.insertCell(3).innerText = reminder.purchaseDate;
+            row.insertCell(4).innerText = reminder.dateTime;
             
             var actionCell = row.insertCell(5);
             var deleteBtn = document.createElement("button");
             deleteBtn.innerText = "Delete";
             deleteBtn.className = "delete-btn";
-            deleteBtn.onclick = function() { deleteReminder(id, row); };
+            deleteBtn.onclick = function() {
+                deleteReminder(reminder, row);
+            };
             actionCell.appendChild(deleteBtn);
         }
-        
-        function deleteReminder(id, row) {
-            db.collection("reminders").doc(id).delete().then(() => {
-                row.remove();
-            }).catch(error => console.error("Error deleting reminder: ", error));
+
+        // Delete reminder
+        function deleteReminder(reminder, row) {
+            var reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+            var updatedReminders = reminders.filter(r => r.dateTime !== reminder.dateTime);
+            localStorage.setItem("reminders", JSON.stringify(updatedReminders));
+            
+            row.remove();
         }
-        
-        window.onload = loadReminders;
+
+        // Request notification permission
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
     </script>
 </body>
 </html>
