@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Reminder</title>
-    <style>
+    <title>Asiaforms Reminder</title>
+    <style> - if i give the next month reminder it show the reminder that i set for the next month , imdiyetly 
         body {
             font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
             background-color: whitesmoke;
@@ -65,6 +65,7 @@
 <body>
     <div class="container">
         <h1 style="text-align: center;">By Asiaforms</h1>
+        <h2>[NOTE] - please pin this tab for the upcomming notfication</h2>
         <label>Customer Name:</label>
         <input type="text" id="name">
         <label>Contact Number:</label>
@@ -101,7 +102,7 @@
 
         var timeoutIds = [];
 
-        function scheduleReminder() {
+function scheduleReminder() {
     var customerName = document.getElementById("name").value;
     var contactNumber = document.getElementById("number").value;
     var purchasingDetails = document.getElementById("details").value;
