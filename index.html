@@ -102,39 +102,45 @@
         var timeoutIds = [];
 
         function scheduleReminder() {
-            var customerName = document.getElementById("name").value;
-            var contactNumber = document.getElementById("number").value;
-            var purchasingDetails = document.getElementById("details").value;
-            var purchaseDate = document.getElementById("purchaseDate").value;
-            var reminderDate = document.getElementById("reminderDate").value;
-            var reminderTime = document.getElementById("time").value;
+    var customerName = document.getElementById("name").value;
+    var contactNumber = document.getElementById("number").value;
+    var purchasingDetails = document.getElementById("details").value;
+    var purchaseDate = document.getElementById("purchaseDate").value;
+    var reminderDate = document.getElementById("reminderDate").value;
+    var reminderTime = document.getElementById("time").value;
 
-            if (!customerName || !contactNumber || !purchasingDetails || !purchaseDate || !reminderDate || !reminderTime) {
-                alert("Please fill all fields.");
-                return;
-            }
+    if (!customerName || !contactNumber || !purchasingDetails || !purchaseDate || !reminderDate || !reminderTime) {
+        alert("Please fill all fields.");
+        return;
+    }
 
-            var dateTimeString = reminderDate + " " + reminderTime;
-            var scheduledTime = new Date(dateTimeString);
-            var currentTime = new Date();
-            var timeDifference = scheduledTime - currentTime;
+    // Extract date and time components
+    let [year, month, day] = reminderDate.split("-").map(Number);
+    let [hours, minutes] = reminderTime.split(":").map(Number);
 
-            if (timeDifference > 0) {
-                var reminder = {
-                    name: customerName,
-                    contact: contactNumber,
-                    details: purchasingDetails,
-                    purchaseDate: purchaseDate,
-                    dateTime: dateTimeString
-                };
+    // Create a proper Date object
+    let scheduledTime = new Date(year, month - 1, day, hours, minutes);
 
-                saveReminder(reminder);
-                addReminderToTable(reminder);
-                scheduleNotification(reminder, timeDifference);
-            } else {
-                alert("The scheduled time is in the past!");
-            }
-        }
+    let currentTime = new Date();
+    let timeDifference = scheduledTime - currentTime;
+
+    if (timeDifference > 0) {
+        var reminder = {
+            name: customerName,
+            contact: contactNumber,
+            details: purchasingDetails,
+            purchaseDate: purchaseDate,
+            dateTime: scheduledTime.toISOString() // Store in ISO format for consistency
+        };
+
+        saveReminder(reminder);
+        addReminderToTable(reminder);
+        scheduleNotification(reminder, timeDifference);
+    } else {
+        alert("The scheduled time is in the past!");
+    }
+}
+
 
         // Save reminders in localStorage
         function saveReminder(reminder) {
